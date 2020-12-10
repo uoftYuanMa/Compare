@@ -753,7 +753,6 @@ class AssignSchedule:
                             (time['week'] == no_assign_time['week'] and time['section'] + 1 == no_assign_time[
                                 'section']):
                         subj_time.pop(i)
-                        self.update_all_course_hours()
                         break
             else:
                 break
@@ -769,7 +768,6 @@ class AssignSchedule:
                             (time['week'] == no_assign_time['week'] and time['section'] + 1 == no_assign_time[
                                 'section']):
                         subj_time.pop(i)
-                        self.update_all_course_hours()
                         break
 
     # IMO this method can be deleted because no one tells linked courses should be separated, created by MY
@@ -782,12 +780,10 @@ class AssignSchedule:
             if next <= self.static_week:
                 if time['week'] == next:
                     subj_time.pop(i)
-                    self.update_all_course_hours()
                     continue
             if pre >= 1:
                 if time['week'] == pre:
                     subj_time.pop(i)
-                    self.update_all_course_hours()
 
     # 03 - 06 : SWAP LINKED CONFLICT POINT - All date format are real date
     # 没考虑同一天连堂课交换
@@ -922,9 +918,7 @@ class AssignSchedule:
                             free_position_subj.pop(j)
                         if value['week'] == day_b and value['section'] == section_b:
                             free_position_subj.pop(j)
-                    self.update_all_course_hours()
                     return True
-        self.update_all_course_hours()
         return False
 
     # 03 - 07 : subj_time - subj_already_linked_course_position ( including pre and cur)
@@ -1412,11 +1406,7 @@ class AssignSchedule:
             if teacher in self.teacher_no_assign:
                 for no_assign_time in self.teacher_no_assign[teacher]:
                     if time['week'] == no_assign_time['week'] - 1 and time['section'] == no_assign_time['section'] - 1:
-                        try:
-                            subj_time.pop(i)
-                        except Exception:
-                            print(subj_time)
-                            print(i)
+                        subj_time.pop(i)
 
     # 04 - 08 : subj_time - subj_already_linked_course_position
     # WARNINGS: 如果存在一个老师带两个班，教不同的科目，按照目前根据科目+老师找关联班级的方法，无法捕捉
@@ -1972,14 +1962,13 @@ class AssignSchedule:
         iteration = 0
         conflict = 0
         min_conflict = sys.maxsize
-        ret_conflict_list = []
         print(min_conflict)
         result = None
         # 6/30 算法合理性检测 -- 0 班级数不全
         if self.course_hours.keys() != self.linked_course_hours.keys():
             res = f'连堂课或总课时中的班级数量不一致，请修改！'
             print(res)
-            return res, None
+            return res
         # 6/30 算法合理性检测 -- 1. 总课时数不超过一周最大课时数
         for key in self.course_hours.keys():
             course_hours_sum = 0
@@ -1989,7 +1978,7 @@ class AssignSchedule:
             if course_hours_sum > self.data.WEEK * self.data.SECTION:
                 res = f"{key}课时总数为{course_hours_sum},超出每周最大课时数限制！请重新设置课时数."
                 print(f"{key}课时总数为{course_hours_sum},超出每周最大课时数限制！请重新设置课时数.")
-                return res, None
+                return res
         ## 6/30 算法合理性检测 -- 2. 科目手排课不超过科目总课时数 + 手排课没有重复位置
         part_schedule = {}  # init
         repeat_check = []
@@ -2012,7 +2001,7 @@ class AssignSchedule:
             if (cla, week, section) in repeat_check:
                 res = f"手排课错误！{cla}班手排课:'{course}',位置:(week:{week},section:{section})安排重复，请修改！"
                 print(res)
-                return res, None
+                return res
             repeat_check.append((cla, week, section))
             # 6/30 Bug: 1个班安排了多节课，这样会覆盖:
             part_schedule[cla][element['course']] = 0
@@ -2035,7 +2024,7 @@ class AssignSchedule:
                     course]:
                     res = f"{cla}班手排课'{course}'+连堂课课时总数超过课程要求的最大课时数，请修改手排课数量！"
                     print(res)
-                    return res, None
+                    return res
         # 6/30 算法合理性检测 -- 3. 连排课课时数数不超过总课时数
         for cla in self.linked_course_hours.keys():
             for course in self.linked_course_hours[cla]:
@@ -2043,7 +2032,7 @@ class AssignSchedule:
                     if self.linked_course_hours[cla][course] * 2 > self.course_hours[cla][course]:
                         res = f"{cla}班连堂课'{course}'课时数超过课程要求的最大课时数限制，请修改！"
                         print(res)
-                        return res, None
+                        return res
         # 6/30 算法合理性检测 -- 4. 科目一周排课节数 <= 5 (包括连堂课，因为同科目一天不能排两次）
         # 另外: 如果通过增加连堂课节数能修正用户操作，则增加连堂课节数
         for cla in self.linked_course_hours.keys():
@@ -2064,7 +2053,7 @@ class AssignSchedule:
                             continue
                         res = f"{cla}班课程{course}总节数（连堂课算1节）超过5节，不满足每天只排一节课（包括连堂课）需求！请修改课程数量！"
                         print(res)
-                        return res, None
+                        return res
         # 6/30 算法合理性检测 -- 5. 每个班连堂课总数<LINK_COURSE_COUNT_PEER_DAY*5 否则无法安排完所有的连堂课
         for cla in self.course_hours.keys():
             count_cla_link = 0
@@ -2073,20 +2062,20 @@ class AssignSchedule:
             if count_cla_link > self.link_course_count * 5:
                 res = f"因为已设置每天最大安排{self.link_course_count}节连堂课，{cla}班设置的连堂课总节数超出上限！请修改连堂课数量或者上限！"
                 print(res)
-                return res, None
+                return res
         count_failed = 0
         # 6/30 设置失败原因追踪，排课失败后给用户反馈失败原因 -- 暂时反馈上午最大课时数失败
-        while iteration <= 15:
+        while iteration <= 150:
             gc.collect()
             self.__init__(data)
             print('iteration:{}'.format(iteration))
             # 01: Assign fixed flow classes： -1
             self.assign_fixed()
             # 如果条件过于严格，无法排出课表，提示用户修改排课条件:
-            if count_failed > 30:
+            if count_failed > 300:
                 res = '排课条件过于严格，无法找到符合条件的结果，请修改排课条件!比如增加课程上午可排最大课时数或者减少科目连堂课数量.'
                 print(res)
-                return res, None
+                return res
             # 02: Assign locked courses: {'1班-化': {'class': '2班', 'subject': '生'}, '9班-政': {'class': '7班', 'subject': '地'}}
             # 对开联排课                                             对开自由课
             if (not self.assign_locked_course_linked()) or (not self.assign_locked_course_free()):
@@ -2107,7 +2096,6 @@ class AssignSchedule:
             conflict = len(self.conflict_course_list)
             for i in range(len(self.conflict_course_list)):
                 print(self.conflict_course_list[i], len(self.conflict_course_list))
-            # 如果上面的都过了，说明已经没有严重的错误了，是可以输出的课表
 
             # 解决冲突
             # auther:ice
@@ -2125,20 +2113,11 @@ class AssignSchedule:
             # 对排课结果进行深度搜索： 并更新self.schedules
             if solve_conflict is not None:
                 solve_conflict_flag = solve_conflict(self.schedules, conflict_list)
-                conflict = len(conflict_list)
             print('是否解决所有冲突', solve_conflict_flag)
-            # if solve_conflict_flag:
-            #     return self.schedules, None
             if conflict < min_conflict:
                 min_conflict = conflict
                 ## 输出标准格式的result
                 result = copy.deepcopy(self.schedules)
-                ## 用于返回的conflict_list
-                ret_conflict_list = []
-                for conflict_detail in conflict_list:
-                    res_item = {}
-                    res_item[int(conflict_detail['class'][0:-1]) - 1] = value
-                    ret_conflict_list.append(res_item)
                 ## 将排课结果输出
                 for cla in range(len(result)):
                     cla_name = self.classes_name[cla]
@@ -2160,8 +2139,8 @@ class AssignSchedule:
         print("min conflict number:{}".format(min_conflict))
         # 如果没有解决完所有的冲突：没有经过深度搜索的，返回最小冲突的结果 result 和 冲突课程位置 conflict_list 8/1
         # --如果深度搜索对课表进行了修改（不管是否完全解决），还需要一个函数，检测最后的结果中，有哪些冲突点，并返回冲突点集
-        print(result, ret_conflict_list)
-        return result, ret_conflict_list  # 没有冲突或是最小冲突的排课结果
+        print(result, self.conflict_course_list)
+        return result, self.conflict_course_list  # 没有冲突或是最小冲突的排课结果
 
     # datasource 格式转换
     @staticmethod

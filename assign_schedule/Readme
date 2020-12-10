@@ -1,0 +1,9 @@
+排课算法文件
+
+        assign_schedule.py           --  排课算法核心文件
+        data_demo.py                 --  排课数据
+        data_source.py               --  排课数据类
+        solve_conflict.py            --  深度交换解决冲突
+        entrance_assign_schedule.py  --  算法接口入口
+        http://127.0.0.1:8000/algorithm/moc/assign_course  -- 测试算法接口，从data_demo.py文件中读取数据
+        http://127.0.0.1:8000/algorithm/assign_course      -- 应用算法接口，传入json数据
