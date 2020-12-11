@@ -21,6 +21,9 @@ def main(data_source):
 
     assign_schedule_object = assign_schedule.AssignSchedule(translate_data)
     # 主函数
+    # try:
+    #     result, conflict_list = assign_schedule_object.run(translate_data, solve_conflict_object.run_of_outer)
+    # except Exception:
+    #     print(Exception)
     result, conflict_list = assign_schedule_object.run(translate_data, solve_conflict_object.run_of_outer)
-
     return result, conflict_list
